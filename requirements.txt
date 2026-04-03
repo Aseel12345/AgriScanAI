@@ -1,8 +1,6 @@
 tensorflow==2.19.0
-keras==2.16.0
-h5py==3.10.0
-numpy==1.26.4
 flask
 gunicorn
-pillow
 gdown
+pillow
+numpy
