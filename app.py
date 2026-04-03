@@ -65,10 +65,11 @@ def predict():
     if model is None:
         return jsonify({"error": "Model not loaded"}), 500
 
-    if 'image' not in request.files:
-        return jsonify({"error": "No image uploaded"}), 400
+    # Check for either 'image' or 'file' for compatibility
+    file = request.files.get('image') or request.files.get('file')
 
-    file = request.files['image']
+    if not file:
+        return jsonify({"error": "No image uploaded"}), 400
 
     try:
         # Process the image
@@ -83,6 +84,7 @@ def predict():
         # Return Response
         return jsonify({
             "label": final_label,
+            "prediction": final_label, # Added for compatibility with simple response model
             "plant_type": class_name,
             "confidence": float(predictions[0][class_index])
         })
