@@ -4,27 +4,29 @@ import numpy as np
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from PIL import Image
-import tensorflow as tf
-from tensorflow.keras.models import load_model
+from tensorflow import keras
 
-# Download model if not exists
-MODEL_PATH = "model/model.keras"
+# Configuration
+MODEL_PATH = "model/fixed_model.h5"
+MODEL_URL = "https://drive.google.com/uc?export=download&id=1LTsAAO7q1PHPbm0RNyWtMbAD6YM4w_qt"
 
 if not os.path.exists(MODEL_PATH):
     print("Downloading model...")
     os.makedirs("model", exist_ok=True)
-    url = "https://drive.google.com/uc?export=download&id=1EfBVr5tOslvPKD8X1X4Mk21y17XlwOPK"
-    gdown.download(url, MODEL_PATH, quiet=False)
+    gdown.download(MODEL_URL, MODEL_PATH, quiet=False)
     print("Model downloaded ✅")
 
-# Load the model
-model = None
+# Update your app.py model loading
+print("Loading model...")
 try:
-    print(f"Loading model from {MODEL_PATH}...")
-    model = load_model(MODEL_PATH)
+    model = keras.models.load_model(
+        MODEL_PATH,
+        compile=False
+    )
     print("Model loaded successfully ✅")
 except Exception as e:
-    print(f"Error loading model: {e}")
+    print("Error loading model:", e)
+    model = None
 
 app = Flask(__name__)
 CORS(app)
@@ -59,6 +61,10 @@ def prepare_image(image_file):
 
 @app.route('/predict', methods=['POST'])
 def predict():
+    # 🔥 Step 3 — Add safe fallback
+    if model is None:
+        return jsonify({"error": "Model not loaded"}), 500
+
     if 'image' not in request.files:
         return jsonify({"error": "No image uploaded"}), 400
 
@@ -68,21 +74,18 @@ def predict():
         # Process the image
         processed_image = prepare_image(file)
 
-        # Make prediction if model is loaded
-        if model:
-            predictions = model.predict(processed_image)
-            class_index = predictions.argmax()
-            class_name = CLASSES[class_index]
-            final_label = map_to_crop_or_weed(class_name)
+        # Make prediction
+        predictions = model.predict(processed_image)
+        class_index = predictions.argmax()
+        class_name = CLASSES[class_index]
+        final_label = map_to_crop_or_weed(class_name)
 
-            # Return Response
-            return jsonify({
-                "label": final_label,
-                "plant_type": class_name,
-                "confidence": float(predictions[0][class_index])
-            })
-        else:
-            return jsonify({"error": "Model not loaded on server"}), 500
+        # Return Response
+        return jsonify({
+            "label": final_label,
+            "plant_type": class_name,
+            "confidence": float(predictions[0][class_index])
+        })
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
