@@ -4,6 +4,7 @@ import numpy as np
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from PIL import Image
+import tensorflow as tf
 from tensorflow.keras.models import load_model
 
 # STEP 2: Update app.py
@@ -35,11 +36,16 @@ CLASSES = [
 model = None
 if os.path.exists(MODEL_PATH):
     try:
-        # ✅ Replace with THIS:
-        model = load_model(MODEL_PATH, compile=False)
-        print("Model loaded successfully!")
+        # We will force compatibility when loading model
+        model = load_model(
+            MODEL_PATH,
+            compile=False,
+            safe_mode=False   # 🔥 IMPORTANT LINE
+        )
+        print("Model loaded successfully ✅")
     except Exception as e:
         print(f"Error loading model: {e}")
+        model = None
 else:
     print(f"Warning: Model file not found at {MODEL_PATH}")
 
