@@ -1,18 +1,35 @@
 import os
+import gdown
 import numpy as np
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from PIL import Image
 import tensorflow as tf
 
+# STEP 2: Update app.py
+MODEL_PATH = "model/crop_weed_model.h5"
+
+if not os.path.exists(MODEL_PATH):
+    print("Downloading model...")
+
+    os.makedirs("model", exist_ok=True)
+
+    url = "https://drive.google.com/uc?id=1IlSnN3kTpZZ5Lqjs9---Vopwfyqfhfk_"
+
+    gdown.download(url, MODEL_PATH, quiet=False)
+
+    print("Model downloaded ✅")
+
 app = Flask(__name__)
-# 3. Ensure CORS exists
 CORS(app)
 
-# --- Configuration ---
-# 1. Updated Model path
-MODEL_PATH = 'model/crop_weed_model.h5'
-CLASSES = ["Healthy", "Early Blight", "Late Blight", "Leaf Spot", "Weed"]
+# STEP 1: Use This Mapping
+CLASSES = [
+    "Black-grass", "Charlock", "Cleavers", "Common Chickweed",
+    "Common wheat", "Fat Hen", "Loose Silky-bent",
+    "Maize", "Scentless Mayweed", "Shepherds Purse",
+    "Small-flowered Cranesbill", "Sugar beet"
+]
 
 # Load the model
 model = None
@@ -24,6 +41,14 @@ if os.path.exists(MODEL_PATH):
         print(f"Error loading model: {e}")
 else:
     print(f"Warning: Model file not found at {MODEL_PATH}")
+
+# STEP 2: Add Crop vs Weed Logic
+def map_to_crop_or_weed(class_name):
+    crops = ["Common wheat", "Maize", "Sugar beet"]
+    if class_name in crops:
+        return "Crop"
+    else:
+        return "Weed"
 
 def prepare_image(image_file):
     """Preprocess the image for the model."""
@@ -40,38 +65,27 @@ def predict():
 
     file = request.files['image']
 
-    # 2. Add error handling (Wrap prediction)
     try:
         # Process the image
         processed_image = prepare_image(file)
 
         # Make prediction if model exists
         if model:
+            # STEP 3: Update Prediction Code
             predictions = model.predict(processed_image)
-            class_idx = np.argmax(predictions[0])
-            label = CLASSES[class_idx]
-            confidence = float(np.max(predictions[0]))
+            class_index = predictions.argmax()
+            class_name = CLASSES[class_index]
+            final_label = map_to_crop_or_weed(class_name)
 
-            # Example logic for recommendations based on label
-            recommendations = {
-                "Early Blight": {"chemical": "Fungicide X", "dosage": "2g/L"},
-                "Late Blight": {"chemical": "Fungicide Y", "dosage": "3g/L"},
-                "Weed": {"chemical": "Glyphosate", "dosage": "1.5L/acre"},
-                "Healthy": {"chemical": "None", "dosage": "N/A"},
-            }
-
-            rec = recommendations.get(label, {"chemical": "Consult Expert", "dosage": "N/A"})
-
+            # STEP 4: Return Response
             return jsonify({
-                "label": label,
-                "chemical": rec["chemical"],
-                "dosage": rec["dosage"],
-                "confidence": confidence,
-                "message": f"Detection successful with {confidence*100:.1f}% confidence."
+                "label": final_label,
+                "plant_type": class_name,
+                "confidence": float(predictions[0][class_index])
             })
         else:
             return jsonify({
-                "error": f"Model not found at {MODEL_PATH}. Please ensure the model file is uploaded."
+                "error": f"Model not found at {MODEL_PATH}. Please ensure the model file is uploaded or downloaded correctly."
             }), 404
 
     except Exception as e:
