@@ -7,8 +7,8 @@ from PIL import Image
 from tensorflow import keras
 
 # Configuration
-MODEL_PATH = "model/fixed_model.h5"
-MODEL_URL = "https://drive.google.com/uc?export=download&id=1LTsAAO7q1PHPbm0RNyWtMbAD6YM4w_qt"
+MODEL_PATH = "model/model.keras"
+MODEL_URL = "https://drive.google.com/uc?export=download&id=1a05pflMPQPWADHZh5UhrfJWjRWVUZswR"
 
 if not os.path.exists(MODEL_PATH):
     print("Downloading model...")
@@ -94,5 +94,5 @@ def predict():
 
 if __name__ == "__main__":
     # Render uses the PORT environment variable
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
