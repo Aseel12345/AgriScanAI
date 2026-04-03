@@ -7,19 +7,28 @@ from PIL import Image
 import tensorflow as tf
 from tensorflow.keras.models import load_model
 
-# STEP 2: Update app.py
+# Download model if not exists
 MODEL_PATH = "model/crop_weed_model.h5"
 
 if not os.path.exists(MODEL_PATH):
     print("Downloading model...")
-
     os.makedirs("model", exist_ok=True)
-
     url = "https://drive.google.com/uc?id=1IlSnN3kTpZZ5Lqjs9---Vopwfyqfhfk_"
-
     gdown.download(url, MODEL_PATH, quiet=False)
-
     print("Model downloaded ✅")
+
+# Load the model with compatibility flags
+model = None
+try:
+    print("Loading model...")
+    model = load_model(
+        MODEL_PATH,
+        compile=False,
+        safe_mode=False  # Required for some h5 models
+    )
+    print("Model loaded successfully ✅")
+except Exception as e:
+    print(f"Error loading model: {e}")
 
 app = Flask(__name__)
 CORS(app)
@@ -31,23 +40,6 @@ CLASSES = [
     "Maize", "Scentless Mayweed", "Shepherds Purse",
     "Small-flowered Cranesbill", "Sugar beet"
 ]
-
-# Load the model
-model = None
-if os.path.exists(MODEL_PATH):
-    try:
-        # We will force compatibility when loading model
-        model = load_model(
-            MODEL_PATH,
-            compile=False,
-            safe_mode=False   # 🔥 IMPORTANT LINE
-        )
-        print("Model loaded successfully ✅")
-    except Exception as e:
-        print(f"Error loading model: {e}")
-        model = None
-else:
-    print(f"Warning: Model file not found at {MODEL_PATH}")
 
 # STEP 2: Add Crop vs Weed Logic
 def map_to_crop_or_weed(class_name):
@@ -76,24 +68,21 @@ def predict():
         # Process the image
         processed_image = prepare_image(file)
 
-        # Make prediction if model exists
+        # Make prediction if model is loaded
         if model:
-            # STEP 3: Update Prediction Code
             predictions = model.predict(processed_image)
             class_index = predictions.argmax()
             class_name = CLASSES[class_index]
             final_label = map_to_crop_or_weed(class_name)
 
-            # STEP 4: Return Response
+            # Return Response
             return jsonify({
                 "label": final_label,
                 "plant_type": class_name,
                 "confidence": float(predictions[0][class_index])
             })
         else:
-            return jsonify({
-                "error": f"Model not found at {MODEL_PATH}. Please ensure the model file is uploaded or downloaded correctly."
-            }), 404
+            return jsonify({"error": "Model not loaded on server"}), 500
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
