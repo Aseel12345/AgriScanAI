@@ -4,7 +4,7 @@ import numpy as np
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from PIL import Image
-import tensorflow as tf
+from tensorflow.keras.models import load_model
 
 # STEP 2: Update app.py
 MODEL_PATH = "model/crop_weed_model.h5"
@@ -35,7 +35,8 @@ CLASSES = [
 model = None
 if os.path.exists(MODEL_PATH):
     try:
-        model = tf.keras.models.load_model(MODEL_PATH)
+        # ✅ Replace with THIS:
+        model = load_model(MODEL_PATH, compile=False)
         print("Model loaded successfully!")
     except Exception as e:
         print(f"Error loading model: {e}")
