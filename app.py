@@ -8,24 +8,20 @@ import tensorflow as tf
 from tensorflow.keras.models import load_model
 
 # Download model if not exists
-MODEL_PATH = "model/crop_weed_model.h5"
+MODEL_PATH = "model/model.keras"
 
 if not os.path.exists(MODEL_PATH):
     print("Downloading model...")
     os.makedirs("model", exist_ok=True)
-    url = "https://drive.google.com/uc?id=1IlSnN3kTpZZ5Lqjs9---Vopwfyqfhfk_"
+    url = "https://drive.google.com/uc?export=download&id=1EfBVr5tOslvPKD8X1X4Mk21y17XlwOPK"
     gdown.download(url, MODEL_PATH, quiet=False)
     print("Model downloaded ✅")
 
-# Load the model with compatibility flags
+# Load the model
 model = None
 try:
-    print("Loading model...")
-    model = load_model(
-        MODEL_PATH,
-        compile=False,
-        safe_mode=False  # Required for some h5 models
-    )
+    print(f"Loading model from {MODEL_PATH}...")
+    model = load_model(MODEL_PATH)
     print("Model loaded successfully ✅")
 except Exception as e:
     print(f"Error loading model: {e}")
@@ -40,6 +36,10 @@ CLASSES = [
     "Maize", "Scentless Mayweed", "Shepherds Purse",
     "Small-flowered Cranesbill", "Sugar beet"
 ]
+
+@app.route("/")
+def home():
+    return "AgriScan AI Backend Running ✅"
 
 # STEP 2: Add Crop vs Weed Logic
 def map_to_crop_or_weed(class_name):
